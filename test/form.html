@@ -37,13 +37,23 @@ window.chrome = { runtime: { lastError: null, sendMessage(msg, cb) {
   const reply = { 'state.get': () => state,
     'resume.pick': () => ({ fileName: 'ana-frontend.pdf', mime: 'application/pdf', dataB64: btoa('%PDF-1.4 teste') }),
     'ai.answer': () => ({ answers: Object.fromEntries(msg.questions.map((q) => [q.id, /por que/i.test(q.label) ? 'Resposta gerada pela IA simulada.' : null])) }),
-    'answers.learn': () => { Object.assign(state.answers, msg.learned); return { ok: true }; } }[msg.type];
+    'answers.learn': () => { Object.assign(state.answers, msg.learned); return { ok: true }; },
+    'queue.result': () => { window.__queueResult = msg; return { ok: true }; } }[msg.type];
   setTimeout(() => cb(reply ? reply() : {}), 10);
 } } };
 </script>
 <script src="../src/content/matcher.js"></script>
 <script src="../src/content/filler.js"></script>
+<script src="../src/content/linkedin.js"></script>
+<script src="../src/content/generic.js"></script>
+<script src="../src/content/panel.js"></script>
 <script>
+// Simula a fila: quando o painel pedir ajuda (termos obrigatórios), marca a caixa e continua.
+window.runQueueTest = async () => {
+  __JAA.onStatus((st) => { if (st.waiting) { document.forms[0].terms.checked = true; setTimeout(() => __JAA.linkedin.resume(), 50); } });
+  await __JAA.queue.runItem({ item: { url: location.href, index: 0 }, total: 1, settings: state.settings });
+  return { result: window.__queueResult, panelQueue: document.getElementById('jaa-panel-host').shadowRoot.getElementById('qinfo').textContent };
+};
 window.runTest = async () => {
   const s = await __JAA.fillPage();
   const f = document.forms[0];

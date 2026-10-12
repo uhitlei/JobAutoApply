@@ -15,6 +15,7 @@
     <button role="tab" data-tab="linkedin">LinkedIn</button>
     <button role="tab" data-tab="ia">IA</button>
     <button role="tab" data-tab="auto">Automação</button>
+    <button role="tab" data-tab="fila">Fila de links</button>
     <button role="tab" data-tab="respostas">Respostas salvas</button>
     <button role="tab" data-tab="historico">Histórico</button>
   </nav>
@@ -133,6 +134,27 @@
       <h3 style="margin-top:0">Backup</h3>
       <p class="help">O arquivo exportado não inclui as chaves de API.</p>
       <div class="row" style="margin-top:0"><button class="btn sec" id="export">Exportar dados</button><label class="btn sec" style="display:inline-block;cursor:pointer">Importar dados<input type="file" id="import" accept=".json" hidden></label></div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="tab-fila" hidden>
+    <h2>Fila de links</h2>
+    <p class="help">Cole os links das vagas, um por linha. A extensão abre cada um em uma aba, preenche o formulário, avança as etapas e registra o resultado aqui. Em vagas que pedem algo que ela não sabe, o painel na página pede sua ajuda.</p>
+    <div class="card">
+      <label>Links<textarea id="q-text" style="min-height:9rem" placeholder="https://www.linkedin.com/jobs/view/123456789
+https://empresa.gupy.io/jobs/987654
+https://boards.greenhouse.io/empresa/jobs/555"></textarea></label>
+      <div class="row">
+        <button class="btn sec" id="q-save">Salvar lista</button>
+        <button class="btn" id="q-start">Iniciar fila</button>
+        <button class="btn danger" id="q-stop" hidden>Parar</button>
+      </div>
+      <div class="note">Sem o envio automático (aba Automação), a fila preenche e para em cada vaga para você revisar e enviar. Depois, clique em "Próximo link" no painel da página.</div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin:0 0 .6rem"><strong id="q-summary" role="status" aria-live="polite"></strong></div>
+      <table><thead><tr><th>#</th><th>Link</th><th>Situação</th><th>Observação</th></tr></thead><tbody id="q-body"></tbody></table>
+      <div class="row"><button class="btn sec" id="q-clear">Remover concluídos</button><button class="btn sec" id="q-reset">Marcar todos como pendentes</button></div>
     </div>
   </section>
 

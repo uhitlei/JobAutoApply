@@ -202,6 +202,33 @@ const removeVault = async () => { if (confirm('Apagar o cofre? As chaves cifrada
 $('v-remove').onclick = removeVault;
 $('v-remove-locked').onclick = removeVault;
 
+// ---- Fila de links ----
+async function renderQueue(q) {
+  q = q || (await send({ type: 'queue.get' }));
+  if (document.activeElement !== $('q-text')) $('q-text').value = q.items.map((i) => i.url).join('\n');
+  $('q-start').hidden = q.running; $('q-stop').hidden = !q.running;
+  const done = q.items.filter((i) => ['enviada', 'concluída'].includes(i.status)).length;
+  $('q-summary').textContent = q.items.length ? `${q.running ? 'Em andamento' : 'Parada'} · ${done} de ${q.items.length} feitas` : 'Lista vazia.';
+  const body = $('q-body');
+  body.textContent = '';
+  q.items.forEach((i, n) => {
+    const a = el('a', { href: i.url, target: '_blank', rel: 'noopener' }, i.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 70));
+    body.append(el('tr', {}, el('td', {}, String(n + 1)), el('td', {}, a), el('td', {}, i.status), el('td', {}, i.note || '')));
+  });
+}
+async function queueCall(type) { const r = await send({ type }); if (r?.error) return toast(r.error); renderQueue(r); }
+$('q-save').onclick = async () => { const r = await send({ type: 'queue.set', text: $('q-text').value }); renderQueue(r); toast(`${r.items.length} link(s) na lista.`); };
+$('q-start').onclick = async () => {
+  const r = await send({ type: 'queue.set', text: $('q-text').value });
+  if (!r.items.length) return toast('Cole ao menos um link.');
+  if (!r.items.some((i) => i.status === 'pendente')) return toast('Nenhum link pendente. Use "Marcar todos como pendentes".');
+  queueCall('queue.start');
+};
+$('q-stop').onclick = () => queueCall('queue.stop');
+$('q-clear').onclick = () => queueCall('queue.clearDone');
+$('q-reset').onclick = () => queueCall('queue.reset');
+chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.queue) renderQueue(ch.queue.newValue); });
+
 // ---- Respostas salvas e histórico ----
 async function renderAnswers() {
   const { answers = {} } = await chrome.storage.local.get('answers');
@@ -262,6 +289,7 @@ function selectTab(name) {
   if (name === 'historico') renderLog();
   if (name === 'curriculos') renderResumes();
   if (name === 'ia') renderVault();
+  if (name === 'fila') renderQueue();
 }
 tabs.forEach((t, i) => {
   t.onclick = () => selectTab(t.dataset.tab);

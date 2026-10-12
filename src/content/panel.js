@@ -49,6 +49,14 @@
             <button class="act" id="resume" hidden>Continuar</button>
             <button class="act danger" id="stop" hidden>Parar</button>
           </div>
+          <section id="qsec" hidden>
+            <div class="status" id="qinfo"></div>
+            <div class="row">
+              <button class="act" id="qnext">Próximo link</button>
+              <button class="act sec" id="qskip">Pular este</button>
+              <button class="act danger" id="qstop">Parar fila</button>
+            </div>
+          </section>
           <section id="manual" hidden>
             <div class="legend">Sem chave de API: copie as perguntas, cole no Claude ou ChatGPT e traga a resposta em JSON.</div>
             <div class="row"><button class="act sec" id="copy">Copiar perguntas e abrir o Claude</button></div>
@@ -73,6 +81,9 @@
     $('resume').onclick = () => { $('resume').hidden = true; JAA.linkedin.resume(); };
     $('stop').onclick = () => JAA.linkedin.stop();
     $('copy').onclick = copyPrompt;
+    $('qnext').onclick = async () => { JAA.linkedin.stop(); await send({ type: 'queue.next' }); setStatus('Abrindo o próximo link…'); };
+    $('qskip').onclick = async () => { JAA.linkedin.stop(); await send({ type: 'queue.skip' }); setStatus('Pulando…'); };
+    $('qstop').onclick = async () => { JAA.linkedin.stop(); await send({ type: 'queue.stop' }); $('qsec').hidden = true; setStatus('Fila parada.'); };
     $('applyjson').onclick = applyJson;
 
     if (JAA.onStatus) JAA.onStatus((s) => {
@@ -116,5 +127,6 @@
   }
 
   JAA.showPanel = () => { if (!host) build(); host.style.display = ''; };
+  JAA.showQueue = (q) => { JAA.showPanel(); $('qsec').hidden = false; $('qinfo').textContent = `Fila: link ${q.index + 1} de ${q.total}`; };
   JAA.showPanel();
 })();

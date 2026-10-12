@@ -7,12 +7,12 @@
   "action": { "default_popup": "ui/popup.html", "default_title": "JobAutoApply" },
   "options_page": "ui/options.html",
   "background": { "service_worker": "src/bg/background.js", "type": "module" },
-  "permissions": ["storage", "unlimitedStorage", "scripting", "activeTab", "tabs", "clipboardWrite"],
+  "permissions": ["storage", "unlimitedStorage", "scripting", "activeTab", "tabs", "clipboardWrite", "alarms"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
       "matches": ["https://www.linkedin.com/jobs/*"],
-      "js": ["src/content/matcher.js", "src/content/filler.js", "src/content/linkedin.js", "src/content/panel.js"],
+      "js": ["src/content/matcher.js", "src/content/filler.js", "src/content/linkedin.js", "src/content/generic.js", "src/content/panel.js"],
       "run_at": "document_idle"
     }
   ],

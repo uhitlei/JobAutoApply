@@ -28,6 +28,7 @@ Nada vai para servidor nenhum do projeto. Não há conta, não há backend, não
 
 - **Preenche qualquer formulário de vaga.** Gupy, Greenhouse, Lever, Workday, sites de carreira. Um clique no popup ou o atalho `Alt+Shift+F`.
 - **Candidatura simplificada do LinkedIn.** Painel na página de vagas com candidatura à vaga aberta ou fila pela lista de resultados. Por padrão, para no botão de enviar para você revisar.
+- **Fila de links.** Cole uma lista de URLs de vagas, de qualquer site, e a extensão abre uma a uma, preenche, avança as etapas e registra o resultado.
 - **Vários currículos.** Cada um com palavras-chave. A extensão anexa o que mais combina com a descrição da vaga.
 - **Aprende com você.** Perguntas que você respondeu à mão viram respostas salvas e são reutilizadas na próxima vez.
 - **IA só onde precisa.** Claude ou GPT, por chave de API ou pelo chat em que você já está logado. Instruída a não inventar fatos.
@@ -94,6 +95,7 @@ src/
     matcher.js      regras rótulo -> perfil e escolha de opções
     filler.js       leitura do formulário, preenchimento, anexo, aprendizado
     linkedin.js     Candidatura simplificada e leitura do perfil
+    generic.js      execução de um link da fila em qualquer site
     panel.js        painel flutuante
 ui/
   options.html/js  configurações

@@ -8,9 +8,11 @@
 
   const run = { active: false, stop: false, resume: null };
   const rand = (a, b) => a + Math.random() * (b - a);
-  let notify = () => {};
-  JAA.onStatus = (fn) => { notify = fn; };
+  const listeners = [];
+  const notify = (st) => listeners.forEach((fn) => fn(st));
+  JAA.onStatus = (fn) => { listeners.push(fn); };
   const status = (text, extra) => notify(Object.assign({ text }, extra || {}));
+  JAA.status = status;
 
   const RE = {
     easy: /(easy apply|candidatura simplificada|candidate se facilmente|candidatar se facilmente)/,
@@ -155,5 +157,5 @@
     return { url: location.href.split('?')[0], text: main.innerText.replace(/\n{3,}/g, '\n\n').slice(0, 20000) };
   }
 
-  JAA.linkedin = { start, stop, resume, scrapeProfile, isJobs: () => location.hostname.endsWith('linkedin.com') && location.pathname.startsWith('/jobs') };
+  JAA.linkedin = { start, stop, resume, scrapeProfile, applyCurrent, waitUser, stopped: () => run.stop, reset: () => { run.stop = false; }, isJobs: () => location.hostname.endsWith('linkedin.com') && location.pathname.startsWith('/jobs') };
 })();

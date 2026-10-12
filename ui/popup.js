@@ -44,4 +44,11 @@ $('vault-lock').onclick = async () => { await chrome.runtime.sendMessage({ type:
   const ai = { api: 'IA automática', manual: 'IA manual', off: 'IA desligada' }[settings.aiMode || 'off'];
   $('summary').textContent = profile.email ? `${profile.fullName || profile.email} · ${resumes.length} currículo(s) · ${ai}` : 'Comece preenchendo seu perfil nas configurações.';
   renderVault(settings);
+  const q = await chrome.runtime.sendMessage({ type: 'queue.get' });
+  if (q?.running) {
+    const done = q.items.filter((i) => ['enviada', 'concluída', 'pulada', 'erro'].includes(i.status)).length;
+    $('queue').hidden = false;
+    $('queue').textContent = `Parar fila (${done} de ${q.items.length})`;
+    $('queue').onclick = async () => { await chrome.runtime.sendMessage({ type: 'queue.stop' }); $('queue').hidden = true; msg('Fila parada.'); };
+  }
 })();

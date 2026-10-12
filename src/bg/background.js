@@ -1,7 +1,7 @@
 import { answerQuestions, manualPrompt, extractProfile, DEFAULT_MODELS } from './llm.js';
 import * as vault from './vault.js';
 
-const CONTENT_FILES = ['src/content/matcher.js', 'src/content/filler.js', 'src/content/linkedin.js', 'src/content/panel.js'];
+const CONTENT_FILES = ['src/content/matcher.js', 'src/content/filler.js', 'src/content/linkedin.js', 'src/content/generic.js', 'src/content/panel.js'];
 const FRAME_FILES = CONTENT_FILES.slice(0, 2);
 
 const DEFAULT_SETTINGS = {
@@ -66,7 +66,113 @@ async function openPanel(tabId) {
   await inject(tabId, CONTENT_FILES, false);
 }
 
+// ---- Fila de links ----
+// Estado em chrome.storage.local para sobreviver ao encerramento do service worker.
+const DONE = new Set(['enviada', 'pulada', 'erro', 'concluída']);
+async function getQueue() { return (await chrome.storage.local.get('queue')).queue || { items: [], running: false, tabId: null }; }
+async function setQueue(q) { await chrome.storage.local.set({ queue: q }); }
+const current = (q) => q.items.find((i) => i.status === 'em andamento' || i.status === 'pronta para revisão');
+
+async function queueOpenNext() {
+  const q = await getQueue();
+  if (!q.running) return;
+  const item = q.items.find((i) => i.status === 'pendente');
+  if (!item) { q.running = false; q.tabId = null; await setQueue(q); return; }
+  item.status = 'em andamento'; item.loads = 0; item.note = '';
+  const tab = q.tabId ? await chrome.tabs.get(q.tabId).catch(() => null) : null;
+  if (tab) await chrome.tabs.update(tab.id, { url: item.url, active: true });
+  else q.tabId = (await chrome.tabs.create({ url: item.url, active: true })).id;
+  await setQueue(q);
+}
+
+async function queueScheduleNext() {
+  const { settings } = await getAll();
+  const secs = settings.delayMin + Math.random() * Math.max(0, settings.delayMax - settings.delayMin);
+  // Alarme em vez de setTimeout: o service worker pode ser encerrado durante a pausa.
+  chrome.alarms.create('queue-next', { delayInMinutes: Math.max(secs, 1) / 60 });
+}
+
+async function queueFinish(status, note) {
+  const q = await getQueue();
+  const item = current(q);
+  if (!item) return;
+  item.status = status; item.note = note || item.note || '';
+  if (status === 'parada') { item.status = 'pendente'; q.running = false; }
+  await setQueue(q);
+  if (DONE.has(status)) await queueScheduleNext();
+}
+
+async function stopContent(tabId) {
+  if (!tabId) return;
+  await chrome.scripting.executeScript({ target: { tabId }, func: () => window.__JAA?.linkedin?.stop() }).catch(() => {});
+}
+
+chrome.tabs.onUpdated.addListener(async (tabId, info) => {
+  if (info.status !== 'complete') return;
+  const q = await getQueue();
+  if (!q.running || tabId !== q.tabId) return;
+  const item = q.items.find((i) => i.status === 'em andamento');
+  if (!item) return;
+  item.loads = (item.loads || 0) + 1;
+  if (item.loads > 4) { item.status = 'erro'; item.note = 'a página recarregou vezes demais'; await setQueue(q); return queueScheduleNext(); }
+  await setQueue(q);
+  const { settings } = await getAll();
+  try {
+    await openPanel(tabId);
+    await chrome.scripting.executeScript({ target: { tabId }, func: (args) => { window.__JAA.queue.runItem(args); }, args: [{ item: { url: item.url, index: q.items.indexOf(item) }, total: q.items.length, settings }] });
+  } catch (e) {
+    await queueFinish('erro', e.message);
+  }
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const q = await getQueue();
+  if (tabId !== q.tabId) return;
+  const item = current(q);
+  if (item && item.status === 'em andamento') item.status = 'pendente';
+  q.running = false; q.tabId = null;
+  await setQueue(q);
+});
+
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'queue-next') queueOpenNext(); });
+
 const handlers = {
+  async 'queue.get'() { return getQueue(); },
+  async 'queue.set'(msg) {
+    const q = await getQueue();
+    const old = new Map(q.items.map((i) => [i.url, i]));
+    const urls = [...new Set(String(msg.text || '').split(/\s+/).map((u) => u.trim()).filter((u) => /^https?:\/\//.test(u)))];
+    q.items = urls.map((url) => old.get(url) || { url, status: 'pendente', note: '' });
+    await setQueue(q);
+    return q;
+  },
+  async 'queue.start'() {
+    const q = await getQueue();
+    for (const i of q.items) if (i.status === 'em andamento' || i.status === 'pronta para revisão') i.status = 'pendente';
+    q.running = true;
+    await setQueue(q);
+    await queueOpenNext();
+    return getQueue();
+  },
+  async 'queue.stop'() {
+    const q = await getQueue();
+    await stopContent(q.tabId);
+    chrome.alarms.clear('queue-next');
+    for (const i of q.items) if (i.status === 'em andamento' || i.status === 'pronta para revisão') i.status = 'pendente';
+    q.running = false;
+    await setQueue(q);
+    return q;
+  },
+  async 'queue.result'(msg, sender) {
+    const q = await getQueue();
+    if (sender.tab && sender.tab.id !== q.tabId) return { ok: false };
+    await queueFinish(msg.status, msg.note);
+    return { ok: true };
+  },
+  async 'queue.next'() { await queueFinish('concluída'); return { ok: true }; },
+  async 'queue.skip'() { const q = await getQueue(); await stopContent(q.tabId); await queueFinish('pulada', 'pulada por você'); return { ok: true }; },
+  async 'queue.clearDone'() { const q = await getQueue(); q.items = q.items.filter((i) => !DONE.has(i.status)); await setQueue(q); return q; },
+  async 'queue.reset'() { const q = await getQueue(); for (const i of q.items) { i.status = 'pendente'; i.note = ''; } await setQueue(q); return q; },
   async 'state.get'() {
     const s = await getAll();
     // Páginas nunca recebem as chaves de API: elas só saem do cofre dentro deste service worker.
