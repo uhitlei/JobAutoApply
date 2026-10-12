@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobAutoApply · Configurações</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><img src="../icons/icon48.png" alt=""><h1>JobAutoApply</h1></div>
+  <nav role="tablist" aria-label="Seções">
+    <button role="tab" data-tab="perfil" aria-selected="true">Perfil</button>
+    <button role="tab" data-tab="curriculos">Currículos</button>
+    <button role="tab" data-tab="linkedin">LinkedIn</button>
+    <button role="tab" data-tab="ia">IA</button>
+    <button role="tab" data-tab="auto">Automação</button>
+    <button role="tab" data-tab="respostas">Respostas salvas</button>
+    <button role="tab" data-tab="historico">Histórico</button>
+  </nav>
+
+  <section role="tabpanel" id="tab-perfil">
+    <h2>Seu perfil</h2>
+    <p class="help">Estes dados preenchem os formulários. Deixe em branco o que não quiser informar. Tudo fica salvo só neste navegador.</p>
+    <div id="profile-form"></div>
+    <div class="row"><button class="btn" id="save-profile">Salvar perfil</button></div>
+  </section>
+
+  <section role="tabpanel" id="tab-curriculos" hidden>
+    <h2>Currículos</h2>
+    <p class="help">Envie um ou mais currículos. A extensão anexa o que tiver mais palavras-chave em comum com a vaga. Sem correspondência, usa o padrão.</p>
+    <div class="card">
+      <label>Adicionar arquivo (PDF ou DOCX)<input type="file" id="resume-file" accept=".pdf,.doc,.docx,application/pdf"></label>
+    </div>
+    <div id="resume-list"></div>
+  </section>
+
+  <section role="tabpanel" id="tab-linkedin" hidden>
+    <h2>Perfil do LinkedIn</h2>
+    <p class="help">Abra o seu perfil do LinkedIn em uma aba, já com login feito, e importe o texto dele. Ele serve de contexto para a IA responder perguntas.</p>
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <button class="btn" id="li-import">Importar da aba do LinkedIn aberta</button>
+        <button class="btn sec" id="li-to-profile">Completar meu perfil com IA</button>
+      </div>
+      <label style="margin-top:1rem">Texto importado<textarea id="li-text" style="min-height:14rem"></textarea></label>
+      <div class="row"><button class="btn sec" id="li-save">Salvar texto</button></div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="tab-ia" hidden>
+    <h2>Inteligência artificial</h2>
+    <p class="help">A IA só entra nas perguntas que o perfil e as respostas salvas não resolvem. Ela é instruída a não inventar fatos e a deixar em branco o que não souber.</p>
+    <div class="card">
+      <div class="grid">
+        <label>Modo
+          <select id="aiMode">
+            <option value="off">Desligada</option>
+            <option value="api">Automática, por chave de API</option>
+            <option value="manual">Manual, pelo chat em que já estou logado</option>
+          </select>
+        </label>
+        <label>Provedor da API
+          <select id="provider"><option value="anthropic">Claude (Anthropic)</option><option value="openai">GPT (OpenAI)</option></select>
+        </label>
+        <label>Chat do modo manual
+          <select id="manualChat"><option value="https://claude.ai/new">claude.ai</option><option value="https://chatgpt.com/">chatgpt.com</option></select>
+        </label>
+      </div>
+      <h3>Modelos</h3>
+      <div class="grid">
+        <label>Modelo do Claude<input type="text" id="anthropicModel"></label>
+        <label>Modelo da OpenAI<input type="text" id="openaiModel"></label>
+      </div>
+      <div class="note">O login do claude.ai não dá acesso à API, por isso o modo manual copia as perguntas para você colar no chat.</div>
+      <div class="row"><button class="btn" id="save-ai">Salvar</button></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Chaves de API (cofre cifrado)</h3>
+      <p class="help">As chaves ficam cifradas no disco com AES-GCM, usando uma chave derivada da sua senha mestra (PBKDF2, 600 mil iterações). A senha nunca é salva: você digita uma vez por sessão do navegador, aqui ou no popup, e o cofre fecha sozinho quando o Chrome é encerrado. Se esquecer a senha, apague o cofre e cadastre as chaves de novo.</p>
+      <div class="note" id="vault-status" role="status" aria-live="polite"></div>
+
+      <div id="vault-create" hidden>
+        <div class="grid">
+          <label>Senha mestra<small>Mínimo de 8 caracteres</small><input type="password" id="v-pass1" autocomplete="new-password"></label>
+          <label>Repita a senha<input type="password" id="v-pass2" autocomplete="new-password"></label>
+        </div>
+        <div class="grid" style="margin-top:.9rem">
+          <label>Chave da API do Claude<input type="password" id="v-new-anthropic" autocomplete="off" placeholder="sk-ant-..."></label>
+          <label>Chave da API da OpenAI<input type="password" id="v-new-openai" autocomplete="off" placeholder="sk-..."></label>
+        </div>
+        <div class="row"><button class="btn" id="v-create">Criar cofre e salvar chaves</button></div>
+      </div>
+
+      <div id="vault-locked" hidden>
+        <div class="grid"><label>Senha mestra<input type="password" id="v-unlock-pass" autocomplete="current-password"></label></div>
+        <div class="row"><button class="btn" id="v-unlock">Desbloquear</button><button class="btn danger" id="v-remove-locked">Apagar cofre</button></div>
+      </div>
+
+      <div id="vault-open" hidden>
+        <div class="grid">
+          <label>Chave da API do Claude<input type="password" id="v-anthropic" autocomplete="off" placeholder="sk-ant-..."></label>
+          <label>Chave da API da OpenAI<input type="password" id="v-openai" autocomplete="off" placeholder="sk-..."></label>
+        </div>
+        <label class="inline" style="margin-top:.6rem"><input type="checkbox" id="v-show"> Mostrar chaves</label>
+        <div class="row"><button class="btn" id="v-save">Salvar chaves</button><button class="btn sec" id="v-lock">Bloquear agora</button></div>
+        <h3>Trocar senha mestra</h3>
+        <div class="grid">
+          <label>Senha atual<input type="password" id="v-old" autocomplete="current-password"></label>
+          <label>Nova senha<input type="password" id="v-new1" autocomplete="new-password"></label>
+          <label>Repita a nova senha<input type="password" id="v-new2" autocomplete="new-password"></label>
+        </div>
+        <div class="row"><button class="btn sec" id="v-change">Trocar senha</button><button class="btn danger" id="v-remove">Apagar cofre</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="tab-auto" hidden>
+    <h2>Automação</h2>
+    <div class="card">
+      <label class="inline"><input type="checkbox" id="autoSubmit"><span><strong>Enviar candidaturas do LinkedIn sem revisão</strong><br><span class="help">Desligado, a extensão preenche tudo e para no botão de enviar para você conferir.</span></span></label>
+      <label class="inline" style="margin-top:.8rem"><input type="checkbox" id="uploadOnLinkedIn"><span><strong>Anexar currículo também no LinkedIn</strong><br><span class="help">O LinkedIn costuma já trazer o último currículo usado. Ligue para sempre enviar o escolhido pela extensão.</span></span></label>
+      <div class="grid" style="margin-top:1rem">
+        <label>Máximo de vagas por fila<input type="number" id="maxPerRun" min="1" max="50"></label>
+        <label>Pausa mínima entre vagas (s)<input type="number" id="delayMin" min="2" max="120"></label>
+        <label>Pausa máxima entre vagas (s)<input type="number" id="delayMax" min="3" max="300"></label>
+      </div>
+      <div class="note">O LinkedIn proíbe automação nos termos de uso e pode restringir contas que enviam muitas candidaturas em sequência. Mantenha filas pequenas e pausas longas.</div>
+      <div class="row"><button class="btn" id="save-auto">Salvar</button></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Backup</h3>
+      <p class="help">O arquivo exportado não inclui as chaves de API.</p>
+      <div class="row" style="margin-top:0"><button class="btn sec" id="export">Exportar dados</button><label class="btn sec" style="display:inline-block;cursor:pointer">Importar dados<input type="file" id="import" accept=".json" hidden></label></div>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="tab-respostas" hidden>
+    <h2>Respostas salvas</h2>
+    <p class="help">Perguntas que você já respondeu em formulários. Elas são reutilizadas quando a mesma pergunta aparece de novo.</p>
+    <div class="card">
+      <div class="grid"><label>Pergunta<input type="text" id="ans-q"></label><label>Resposta<input type="text" id="ans-a"></label></div>
+      <div class="row"><button class="btn sec" id="ans-add">Adicionar</button></div>
+    </div>
+    <div class="card"><table><thead><tr><th>Pergunta</th><th>Resposta</th><th><span class="help">Ações</span></th></tr></thead><tbody id="ans-body"></tbody></table></div>
+  </section>
+
+  <section role="tabpanel" id="tab-historico" hidden>
+    <h2>Histórico de candidaturas</h2>
+    <div class="card"><table><thead><tr><th>Data</th><th>Vaga</th><th>Empresa</th><th>Situação</th></tr></thead><tbody id="log-body"></tbody></table>
+    <div class="row"><button class="btn danger" id="log-clear">Limpar histórico</button></div></div>
+  </section>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="options.js"></script>
+</body>
+</html>

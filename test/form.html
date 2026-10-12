@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Desenvolvedor Frontend · Formulário de teste</title>
+<style>body{font:16px system-ui;max-width:40rem;margin:2rem auto;padding:0 1rem} label,fieldset{display:block;margin:1rem 0} input,select,textarea{display:block;width:100%;padding:.4rem}</style></head>
+<body>
+<h1>Desenvolvedor Frontend React</h1>
+<div id="job-details">Buscamos pessoa desenvolvedora com React e TypeScript para atuar em produto SaaS.</div>
+<form>
+  <label>Nome completo *<input name="f1" required></label>
+  <label for="em">E-mail</label><input id="em" type="email">
+  <label>Telefone celular<input name="tel1"></label>
+  <input aria-label="LinkedIn profile URL" name="x9">
+  <div><span>Cidade</span><input name="q_77"></div>
+  <label>Pretensão salarial (CLT)<input type="number" name="sal"></label>
+  <label>How many years of work experience do you have with React?<input name="yrs" type="text"></label>
+  <label>Quantos anos de experiência com Kubernetes?<input name="k8s"></label>
+  <label>Anos de experiência profissional total
+    <select name="exp"><option value="">Selecione</option><option value="a">0-2 anos</option><option value="b">3-5 anos</option><option value="c">6-10 anos</option><option value="d">Mais de 10 anos</option></select></label>
+  <fieldset><legend>Você está autorizado a trabalhar no Brasil? *</legend>
+    <label><input type="radio" name="auth" value="1" required> Sim</label><label><input type="radio" name="auth" value="0"> Não</label></fieldset>
+  <fieldset><legend>Will you now or in the future require visa sponsorship?</legend>
+    <label><input type="radio" name="visa" value="y"> Yes</label><label><input type="radio" name="visa" value="n"> No</label></fieldset>
+  <label>Nível de inglês<select name="en"><option>Selecione</option><option>Básico</option><option>Intermediário</option><option>Avançado</option><option>Fluente</option></select></label>
+  <label>Por que você quer trabalhar conosco? *<textarea name="why" required maxlength="600"></textarea></label>
+  <label>Currículo<input type="file" name="resume"></label>
+  <label><input type="checkbox" name="terms" required> Li e aceito os termos</label>
+  <label>Senha<input type="password" name="pw"></label>
+  <button type="submit">Enviar</button>
+</form>
+<pre id="out"></pre>
+<script>
+// Simulação mínima de chrome.runtime para rodar os content scripts fora da extensão.
+const state = {
+  profile: { fullName: 'Ana Souza', email: 'ana@example.com', phone: '+55 71 99999-0000', linkedin: 'https://www.linkedin.com/in/anasouza', city: 'Salvador', salary: '12000', yearsExperience: 7, skillsYears: { React: 5 }, workAuthorization: 'Sim', sponsorship: 'Não', englishLevel: 'Avançado' },
+  settings: { aiMode: 'api', uploadOnLinkedIn: false }, answers: {},
+};
+window.chrome = { runtime: { lastError: null, sendMessage(msg, cb) {
+  const reply = { 'state.get': () => state,
+    'resume.pick': () => ({ fileName: 'ana-frontend.pdf', mime: 'application/pdf', dataB64: btoa('%PDF-1.4 teste') }),
+    'ai.answer': () => ({ answers: Object.fromEntries(msg.questions.map((q) => [q.id, /por que/i.test(q.label) ? 'Resposta gerada pela IA simulada.' : null])) }),
+    'answers.learn': () => { Object.assign(state.answers, msg.learned); return { ok: true }; } }[msg.type];
+  setTimeout(() => cb(reply ? reply() : {}), 10);
+} } };
+</script>
+<script src="../src/content/matcher.js"></script>
+<script src="../src/content/filler.js"></script>
+<script>
+window.runTest = async () => {
+  const s = await __JAA.fillPage();
+  const f = document.forms[0];
+  const result = {
+    nome: f.f1.value, email: document.getElementById('em').value, tel: f.tel1.value, linkedin: f.x9.value, cidade: f.q_77.value,
+    salario: f.sal.value, anosReact: f.yrs.value, anosK8s: f.k8s.value, faixaExp: f.exp.selectedOptions[0].text, autorizado: f.auth.value, visto: f.visa.value,
+    ingles: f.en.value, porque: f.why.value, arquivo: f.resume.files[0] && f.resume.files[0].name, termos: f.terms.checked, senha: f.pw.value,
+    resumo: { filled: s.filled, ai: s.ai, files: s.files, pending: s.pending.map((p) => p.label) },
+  };
+  document.getElementById('out').textContent = JSON.stringify(result, null, 1);
+  return result;
+};
+</script>
+</body></html>

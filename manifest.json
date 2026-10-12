@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "JobAutoApply",
+  "description": "Preenche e envia candidaturas a vagas usando seu perfil, seus currículos e, opcionalmente, IA (Claude ou GPT).",
+  "version": "0.1.0",
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": { "default_popup": "ui/popup.html", "default_title": "JobAutoApply" },
+  "options_page": "ui/options.html",
+  "background": { "service_worker": "src/bg/background.js", "type": "module" },
+  "permissions": ["storage", "unlimitedStorage", "scripting", "activeTab", "tabs", "clipboardWrite"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/jobs/*"],
+      "js": ["src/content/matcher.js", "src/content/filler.js", "src/content/linkedin.js", "src/content/panel.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "fill-page": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Preencher o formulário da página atual"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>JobAutoApply</title><link rel="stylesheet" href="ui.css">
+<style>body{width:300px;padding:14px;font-size:14px} .btn{width:100%;margin-top:8px} #msg{min-height:1.2em;margin:.6rem 0 0}</style></head>
+<body>
+  <div class="top" style="margin-bottom:.5rem"><img src="../icons/icon48.png" alt="" style="width:28px;height:28px"><h1 style="font-size:1.1rem">JobAutoApply</h1></div>
+  <p class="help" id="summary" style="margin:0"></p>
+  <div id="vault" hidden>
+    <label style="margin-top:.6rem">Senha mestra do cofre<input type="password" id="vault-pass" autocomplete="current-password"></label>
+    <button class="btn" id="vault-unlock">Desbloquear chaves de API</button>
+  </div>
+  <button class="btn sec" id="vault-lock" hidden>Bloquear chaves de API</button>
+  <button class="btn" id="fill">Preencher esta página</button>
+  <button class="btn sec" id="panel">Abrir painel na página</button>
+  <button class="btn sec" id="options">Configurações</button>
+  <p class="help" id="msg" role="status" aria-live="polite"></p>
+  <p class="help" style="margin:0">Atalho: Alt+Shift+F</p>
+  <script src="popup.js"></script>
+</body>
+</html>
